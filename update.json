@@ -1,8 +1,8 @@
 {
-  "version": "1.6.11",
+  "version": "1.6.12",
   "apkBuild": 6,
   "apk": "Lecteur-IPTV.apk",
-  "webBuild": 11,
+  "webBuild": 12,
   "web": "index.html",
-  "notes": "Plusieurs connexions : comptes Xtream et playlists, bouton 📡 pour changer"
+  "notes": "Chaînes fusionnées : étiquette de qualité compacte sur la ligne du nom (2 qualités max puis …)"
 }

@@ -176,7 +176,9 @@
   .srcrow .sn{flex:1;min-width:140px}
   .srcrow .sn small{display:block;color:var(--muted);font-size:11px}
   .srcrow button{padding:4px 9px;font-size:12px}
-  .qt{font-size:10px;color:var(--muted);border:1px solid #2c313c;border-radius:4px;padding:1px 5px;white-space:nowrap;flex:none;max-width:38%;overflow:hidden;text-overflow:ellipsis}
+  .ch .nm{display:flex;align-items:center;gap:6px;min-width:0}
+  .ch .nt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qt{font-size:10px;color:var(--muted);border:1px solid #2c313c;border-radius:4px;padding:0 5px;line-height:1.5;white-space:nowrap;flex:none}
   #cbar #cQual,#cbar #cAudio{font-size:13px;border:1px solid #fff5;border-radius:6px;padding:3px 10px}
   #cbar #cQual[hidden],#cbar #cAudio[hidden]{display:none}
   /* barres de défilement discrètes */
@@ -452,7 +454,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), statusEl = $('status');
-const WEB_BUILD = 11;                                                            // numéro de version de l'interface (remplacé à la compilation)
+const WEB_BUILD = 12;                                                            // numéro de version de l'interface (remplacé à la compilation)
 const AND = typeof window.Android !== 'undefined' && !!window.Android;                       // application Android (WebView)
 const IS_TV = AND && !!window.Android.isTv && window.Android.isTv();                         // Fire TV / Android TV
 const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
@@ -1394,8 +1396,9 @@ function render(){
     d.oncontextmenu = e => itemMenu(e, c);
     enableItemDrag(d, c);
     d.innerHTML = (c.logo ? '<img loading="lazy" referrerpolicy="no-referrer" alt="">' : '<div class="ph">TV</div>') +
-      '<div class="name">' + esc(c._dn || c.name) + '<div class="grp">' + esc(c.group) + '</div></div>' +
-      (c.variants ? '<span class="qt" title="' + esc(c.variants.map(v => v._qi.label || 'Standard').join('\n')) + '">' + esc(qTag(c)) + '</span>' : c._single ? '<span class="qt">' + esc(c._single) + '</span>' : '') +
+      '<div class="name"><div class="nm"><span class="nt">' + esc(c._dn || c.name) + '</span>' +
+        (c.variants ? '<span class="qt" title="' + esc(c.variants.map(v => v._qi.label || 'Standard').join('\n')) + '">' + esc(qTag(c)) + '</span>' : c._single ? '<span class="qt">' + esc(c._single) + '</span>' : '') +
+      '</div><div class="grp">' + esc(c.group) + '</div></div>' +
       '<button class="star' + (isFav(c) ? ' on' : '') + '" title="Favori">★</button>';
     if(c.logo){
       const im = d.querySelector('img'); im.src = c.logo;
@@ -1844,7 +1847,11 @@ function applyGrouping(){
     vars.forEach(v => { v._master = rep; if(v !== rep) v._alt = true; });
   });
 }
-function qTag(c){ const q = [...new Set(c.variants.map(v => v._qi.q).filter(Boolean))]; return q.length ? q.join(' · ') : c.variants.length + ' sources'; }
+function qTag(c){
+  const q = [...new Set(c.variants.map(v => v._qi.q).filter(Boolean))];          // variantes triées de la plus haute à la plus basse
+  if(!q.length) return c.variants.length + ' sources';
+  return q.slice(0, 2).join(' · ') + (q.length > 2 ? ' · …' : '');           // 2 qualités les plus hautes, puis « … »
+}
 function qModeOf(m){ return qPref[m._vkey] || qDefault; }
 function qLabel(v){ return v._qi.label || 'Standard'; }
 function pickVariant(m){
