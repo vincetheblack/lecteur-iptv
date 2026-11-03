@@ -1,8 +1,8 @@
 {
-  "version": "1.6.14",
+  "version": "1.6.15",
   "apkBuild": 6,
   "apk": "Lecteur-IPTV.apk",
-  "webBuild": 14,
+  "webBuild": 15,
   "web": "index.html",
-  "notes": "Windows : bouton Mettre à jour (interface) ; mises à jour via GitHub"
+  "notes": "Guide TV : les fichiers ZIP (ex. xmltvfr.fr/xmltv/xmltv.zip) et les gros guides sont maintenant pris en charge"
 }

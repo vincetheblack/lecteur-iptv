@@ -455,7 +455,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), statusEl = $('status');
-const WEB_BUILD = (window.desktop && +window.desktop.webBuild) || 14;                                                            // numéro de version de l'interface (remplacé à la compilation)
+const WEB_BUILD = (window.desktop && +window.desktop.webBuild) || 15;                                                            // numéro de version de l'interface (remplacé à la compilation)
 const AND = typeof window.Android !== 'undefined' && !!window.Android;                       // application Android (WebView)
 const DESK = typeof window.desktop !== 'undefined' && !!window.desktop;                      // application Windows (Electron)
 const NAT = AND ? window.Android : (DESK ? window.desktop : null);                         // pont natif pour les mises à jour
@@ -829,16 +829,72 @@ function xt(s){
   return t;
 }
 
-async function bytesToText(buf){
-  const b = new Uint8Array(buf);
-  if(b[0] === 0x1f && b[1] === 0x8b){
-    const stream = new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return await new Response(stream).text();
+async function inflate(data, fmt){
+  const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream(fmt));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function unzipFirst(b){
+  const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  let eocd = -1;
+  for(let i = b.length - 22; i >= Math.max(0, b.length - 70000); i--){ if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; } }
+  if(eocd < 0) throw new Error('ZIP invalide');
+  let p = dv.getUint32(eocd + 16, true);
+  const cnt = dv.getUint16(eocd + 10, true);
+  let best = null;
+  for(let k = 0; k < cnt && dv.getUint32(p, true) === 0x02014b50; k++){
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+    const off = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(b.subarray(p + 46, p + 46 + nl));
+    if(!name.endsWith('/') && (!best || /\.xml(\.gz)?$/i.test(name) && !/\.xml(\.gz)?$/i.test(best.name))) best = { name, method, csize, off };
+    p += 46 + nl + el + cl;
   }
+  if(!best) throw new Error('ZIP vide');
+  const ln = dv.getUint16(best.off + 26, true), le = dv.getUint16(best.off + 28, true);
+  const start = best.off + 30 + ln + le;
+  const raw = b.subarray(start, start + best.csize);
+  if(best.method === 0) return raw;
+  if(best.method === 8) return await inflate(raw, 'deflate-raw');
+  throw new Error('compression ZIP non gérée');
+}
+async function bytesToText(buf){
+  let b = new Uint8Array(buf);
+  if(b[0] === 0x50 && b[1] === 0x4b) b = await unzipFirst(b);
+  if(b[0] === 0x1f && b[1] === 0x8b) b = await inflate(b, 'gzip');
   return new TextDecoder().decode(b);
 }
 
+// Analyse rapide (guides volumineux) sans DOM
+function parseXmltvFast(text){
+  const un = t => t.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+  const progs = new Map(), names = new Map();
+  let m;
+  const rc = /<channel\s[^>]*?id="([^"]*)"[^>]*>([\s\S]*?)<\/channel>/g;
+  while((m = rc.exec(text))){
+    const rd = /<display-name[^>]*>([\s\S]*?)<\/display-name>/g; let d;
+    while((d = rd.exec(m[2]))) names.set(norm(un(d[1])), un(m[1]));
+  }
+  const now = Date.now(), min = now - 6 * 3600e3, max = now + 48 * 3600e3;
+  let n = 0;
+  const rp = /<programme\s([^>]*)>([\s\S]*?)<\/programme>/g;
+  while((m = rp.exec(text))){
+    const at = m[1];
+    const g = k => { const r = new RegExp(k + '="([^"]*)"').exec(at); return r ? r[1] : ''; };
+    const s = xt(g('start')), e = xt(g('stop'));
+    if(!s || !e || e < min || s > max) continue;
+    const id = un(g('channel'));
+    const t = /<title[^>]*>([\s\S]*?)<\/title>/.exec(m[2]), dsc = /<desc[^>]*>([\s\S]*?)<\/desc>/.exec(m[2]);
+    if(!progs.has(id)) progs.set(id, []);
+    progs.get(id).push({ s, e, title: t ? un(t[1]) : '', desc: dsc ? un(dsc[1]) : '' }); n++;
+  }
+  for(const l of progs.values()) l.sort((a, b) => a.s - b.s);
+  epg = progs; epgNames = names;
+  channels.forEach(c => c._p = undefined);
+  return n;
+}
+
 function parseXmltv(text){
+  if(text.length > 15e6) return parseXmltvFast(text);
   const doc = new DOMParser().parseFromString(text, 'text/xml');
   if(doc.querySelector('parsererror')) throw new Error('XMLTV invalide');
   const progs = new Map(), names = new Map();
