@@ -1,8 +1,8 @@
 {
-  "version": "1.6.10",
+  "version": "1.6.11",
   "apkBuild": 6,
   "apk": "Lecteur-IPTV.apk",
-  "webBuild": 10,
+  "webBuild": 11,
   "web": "index.html",
-  "notes": "Télécommande : le clavier ne s'ouvre plus tout seul dans les Réglages"
+  "notes": "Plusieurs connexions : comptes Xtream et playlists, bouton 📡 pour changer"
 }
