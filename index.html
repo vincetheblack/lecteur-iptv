@@ -153,6 +153,9 @@
   body.fw section{display:flex !important;flex:1}
   #cbar button.on{color:var(--accent)}
   /* films & séries : barre du haut compacte sur une seule ligne, petites vignettes */
+  main.pm nav#groups{width:var(--wgp,270px)}
+  main.pm .g .gn{white-space:normal;line-height:1.25}
+  main.pm .g{align-items:center}
   main.pm #top{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 8px}
   main.pm #top .tabs{padding:0;flex:0 0 auto}
   main.pm #top .tabs button{flex:none;padding:4px 12px;font-size:12px}
@@ -437,7 +440,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), statusEl = $('status');
-const WEB_BUILD = 6;                                                            // numéro de version de l'interface (remplacé à la compilation)
+const WEB_BUILD = 10;                                                            // numéro de version de l'interface (remplacé à la compilation)
 const AND = typeof window.Android !== 'undefined' && !!window.Android;                       // application Android (WebView)
 const IS_TV = AND && !!window.Android.isTv && window.Android.isTv();                         // Fire TV / Android TV
 const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
@@ -665,19 +668,21 @@ $('unhideAll').onclick = () => { hidC.clear(); hidG.clear(); save('iptv_hidg', [
 $('setBtn').onclick = () => { updateEye(); if(AND) showUpdInfo(); $('rowsSel').value = String(load('iptv_rows', 4)); $('uiSel').value = String(load('iptv_uiscale', IS_TV ? 0.7 : 1)); $('aLangSel').value = aLang; $('groupQSel').value = groupQ ? '1' : '0'; $('qDefSel').value = qDefault; $('qSensSel').value = String(qSens); $('bufSel').value = String(bufSec); $('bufMode').value = cacheMode; $('apiProv').value = apiCfg.prov; $('apiKey').value = apiCfg.key; $('url').value = $('url').value || load('iptv_url', ''); $('setDlg').showModal(); };
 $('setClose').onclick = () => $('setDlg').close();
 setCols(MOBILE() ? false : load('iptv_cols', true)); updateEye();
-function initResizer(h, el, varName, min, key){
-  const root = document.documentElement, saved = load(key, 0);
-  if(saved) root.style.setProperty(varName, saved + 'px');
+function initResizer(h, el, varName, min, key, pmVar, pmKey){
+  const root = document.documentElement;
+  [[varName, key], [pmVar, pmKey]].forEach(([v, k]) => { if(v){ const sv = load(k, 0); if(sv) root.style.setProperty(v, sv + 'px'); } });
+  const cur = () => pmVar && $('main').classList.contains('pm') ? [pmVar, pmKey] : [varName, key];    // films & séries : largeur propre
   h.onpointerdown = e => {
+    const [vn, k] = cur();
     e.preventDefault(); h.setPointerCapture(e.pointerId); h.classList.add('drag');
     const x0 = e.clientX, w0 = el.getBoundingClientRect().width;
     document.body.style.userSelect = 'none';
-    h.onpointermove = ev => root.style.setProperty(varName, Math.round(Math.max(min, Math.min(innerWidth * 0.7, w0 + ev.clientX - x0))) + 'px');
-    h.onpointerup = () => { h.onpointermove = h.onpointerup = null; h.classList.remove('drag'); document.body.style.userSelect = ''; save(key, Math.round(el.getBoundingClientRect().width)); };
+    h.onpointermove = ev => { root.style.setProperty(vn, Math.round(Math.max(min, Math.min(innerWidth * 0.7, w0 + ev.clientX - x0))) + 'px'); if(window.fitGrid) fitGrid(); };
+    h.onpointerup = () => { h.onpointermove = h.onpointerup = null; h.classList.remove('drag'); document.body.style.userSelect = ''; save(k, Math.round(el.getBoundingClientRect().width)); if(window.fitGrid) fitGrid(); };
   };
-  h.ondblclick = () => { root.style.removeProperty(varName); del(key); };
+  h.ondblclick = () => { const [vn, k] = cur(); root.style.removeProperty(vn); del(k); if(window.fitGrid) fitGrid(); };
 }
-initResizer($('rs1'), $('groups'), '--wg', 120, 'iptv_w_groups');
+initResizer($('rs1'), $('groups'), '--wg', 120, 'iptv_w_groups', '--wgp', 'iptv_w_groups_pm');
 initResizer($('rs2'), document.querySelector('aside'), '--wl', 220, 'iptv_w_list');
 
 // ================= Sections TV / Films / Séries =================
@@ -2357,7 +2362,7 @@ document.addEventListener('touchend', () => { clearTimeout(lpT); if(lpDone) setT
 document.addEventListener('click', e => { if(lpDone){ e.stopPropagation(); e.preventDefault(); lpDone = false; } }, true);
 
 window.androidBack = () => {
-  const dlg = document.querySelector('dialog[open]'); if(dlg){ dlg.close(); return true; }
+  const dlg = topDialog(); if(dlg){ dlg.close(); return true; }
   if($('vmenu').classList.contains('show')){ closeVMenu(); return true; }
   if($('ctx').style.display === 'block'){ hideMenu(); return true; }
   if(selSet.size || selMode){ clearSel(); return true; }
@@ -2366,7 +2371,12 @@ window.androidBack = () => {
   if($('main').classList.contains('watching')){ stopPlayback(); render(); return true; }
   return false;
 };
-window.appPaused = () => { appPausedFlag = true; if(curCh && !video.paused) resumeCh = curCh; video.pause(); };
+window.appPaused = () => {
+  appPausedFlag = true;
+  if(curCh && (curCh.kind === 'live' || !video.paused)) resumeCh = curCh;
+  video.pause();
+  if(curCh && curCh.kind === 'live') stop();      // coupe la connexion au serveur : sinon elle resterait ouverte (débit consommé, connexion de l'abonnement occupée)
+};
 window.appResumed = () => {
   appPausedFlag = false;
   if(resumeCh && resumeCh === curCh){ if(resumeCh.kind === 'live') play(resumeCh); else video.play().catch(() => {}); }
@@ -2397,10 +2407,15 @@ function tvVisible(el){
   if(el.closest('#cbar') && !$('stage').classList.contains('act') && !$('stage').classList.contains('menu')) return false;
   return true;
 }
+// Fenêtre ouverte la plus au-dessus (plusieurs fenêtres peuvent être empilées : Réglages puis Xtream, etc.)
+function topDialog(){
+  const l = [...document.querySelectorAll('dialog[open]')];
+  return l.find(d => d.contains(document.activeElement)) || l[l.length - 1] || null;
+}
 function tvList(){
-  let q = 'button, input, select, textarea, .ch, .card, .g, .more, .back, .pg, .e, .mi';
+  let q = 'button, input, select, textarea, .ch, .card, .g, .more, .back, .pg, .e, .mi, #stage';
   let scope = document;
-  const dlg = document.querySelector('dialog[open]');
+  const dlg = topDialog();
   if(dlg){ scope = dlg; q = 'button, input, select, textarea, .e'; }
   else if($('ctx').style.display === 'block'){ scope = $('ctx'); q = 'div'; }
   else if($('vmenu').classList.contains('show')){ scope = $('vmenu'); q = '.mi'; }
@@ -2435,9 +2450,23 @@ function tvMove(dir){
   const t = best || fb;
   if(t) tvFocus(t);
 }
+// Télécommande : les champs de saisie sont verrouillés (lecture seule) pour que le clavier de la Fire TV ne s'ouvre pas
+// tout seul quand on tombe dessus. OK sur un champ le déverrouille et ouvre le clavier ; en le quittant, il se reverrouille.
+const TXT = 'input:not([type=button]):not([type=checkbox]):not([type=range]):not([type=file]):not([type=hidden]):not(#pfText), textarea:not(#pfText)';
+let tvUnlocking = false;
+const isTxt = el => !!(el && el.matches && el.matches(TXT));
+if(IS_TV){
+  document.querySelectorAll(TXT).forEach(el => { el.readOnly = true; });
+  document.addEventListener('focusout', e => { if(!tvUnlocking && isTxt(e.target)) e.target.readOnly = true; }, true);
+}
 if(IS_TV) document.addEventListener('keydown', e => {
   const f = document.activeElement, tag = f ? f.tagName : '';
-  const typing = tag === 'TEXTAREA' || (tag === 'INPUT' && !/^(button|checkbox|range|file)$/.test(f.type));
+  const typing = !f.readOnly && (tag === 'TEXTAREA' || (tag === 'INPUT' && !/^(button|checkbox|range|file)$/.test(f.type)));
+  if(e.key === 'Enter' && isTxt(f)){
+    if(f.readOnly){ e.preventDefault(); e.stopImmediatePropagation(); tvUnlocking = true; f.blur(); f.readOnly = false; f.focus(); tvUnlocking = false; }   // ouvre le clavier
+    else if(tag === 'INPUT'){ tvUnlocking = true; f.readOnly = true; f.blur(); f.focus({ preventScroll: true }); tvUnlocking = false; }                  // fin de saisie : le clavier se ferme
+    return;
+  }
   const overlay = document.querySelector('dialog[open]') || $('ctx').style.display === 'block' || $('vmenu').classList.contains('show');
   const stop = () => { e.preventDefault(); e.stopImmediatePropagation(); };
   if(document.body.classList.contains('fw') && !overlay){
@@ -2453,7 +2482,8 @@ if(IS_TV) document.addEventListener('keydown', e => {
     if(tag === 'INPUT' && f.type === 'range' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
     stop(); tvMove(e.key);
   } else if(e.key === 'Enter'){
-    if(f && f.matches && f.matches('.ch, .card, .g, .more, .back, .pg, .e, #ctx div, #vmenu .mi')){ stop(); f.click(); }
+    if(f && f.id === 'stage'){ stop(); if(curCh) toggleFw(); else toast("Choisissez d'abord une chaîne dans la liste"); }
+    else if(f && f.matches && f.matches('.ch, .card, .g, .more, .back, .pg, .e, #ctx div, #vmenu .mi')){ stop(); f.click(); }
   } else if(e.key === 'ContextMenu'){ stop(); window.tvKey('menu'); }
 }, true);
 
