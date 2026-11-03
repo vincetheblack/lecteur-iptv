@@ -1,8 +1,8 @@
 {
-  "version": "1.6.13",
+  "version": "1.6.14",
   "apkBuild": 6,
   "apk": "Lecteur-IPTV.apk",
-  "webBuild": 13,
+  "webBuild": 14,
   "web": "index.html",
-  "notes": "Mises à jour : GitHub intégré à l'application, vérification automatique au démarrage"
+  "notes": "Windows : bouton Mettre à jour (interface) ; mises à jour via GitHub"
 }

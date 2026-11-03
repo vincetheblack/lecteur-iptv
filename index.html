@@ -455,8 +455,10 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), statusEl = $('status');
-const WEB_BUILD = 13;                                                            // numéro de version de l'interface (remplacé à la compilation)
+const WEB_BUILD = (window.desktop && +window.desktop.webBuild) || 14;                                                            // numéro de version de l'interface (remplacé à la compilation)
 const AND = typeof window.Android !== 'undefined' && !!window.Android;                       // application Android (WebView)
+const DESK = typeof window.desktop !== 'undefined' && !!window.desktop;                      // application Windows (Electron)
+const NAT = AND ? window.Android : (DESK ? window.desktop : null);                         // pont natif pour les mises à jour
 const IS_TV = AND && !!window.Android.isTv && window.Android.isTv();                         // Fire TV / Android TV
 const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 const MOBILE = () => window.matchMedia('(max-width: 900px)').matches;                        // téléphone / tablette en portrait
@@ -680,7 +682,7 @@ $('scrim').onclick = () => setCols(false);
 $('colBtn').onclick = () => setCols($('groups').classList.contains('collapsed'));
 $('eyeBtn').onclick = () => { showHidden = !showHidden; selSet.clear(); updateEye(); limit = 500; if(section === 'live') applyGrouping(); render(); };
 $('unhideAll').onclick = () => { hidC.clear(); hidG.clear(); save('iptv_hidg', []); save('iptv_hidc', []); showHidden = false; updateEye(); render(); };
-$('setBtn').onclick = () => { updateEye(); renderSources(); if(AND) showUpdInfo(); $('rowsSel').value = String(load('iptv_rows', 4)); $('uiSel').value = String(load('iptv_uiscale', IS_TV ? 0.7 : 1)); $('aLangSel').value = aLang; $('groupQSel').value = groupQ ? '1' : '0'; $('qDefSel').value = qDefault; $('qSensSel').value = String(qSens); $('bufSel').value = String(bufSec); $('bufMode').value = cacheMode; $('apiProv').value = apiCfg.prov; $('apiKey').value = apiCfg.key; $('url').value = $('url').value || load('iptv_url', ''); $('setDlg').showModal(); };
+$('setBtn').onclick = () => { updateEye(); renderSources(); if(NAT) showUpdInfo(); $('rowsSel').value = String(load('iptv_rows', 4)); $('uiSel').value = String(load('iptv_uiscale', IS_TV ? 0.7 : 1)); $('aLangSel').value = aLang; $('groupQSel').value = groupQ ? '1' : '0'; $('qDefSel').value = qDefault; $('qSensSel').value = String(qSens); $('bufSel').value = String(bufSec); $('bufMode').value = cacheMode; $('apiProv').value = apiCfg.prov; $('apiKey').value = apiCfg.key; $('url').value = $('url').value || load('iptv_url', ''); $('setDlg').showModal(); };
 $('setClose').onclick = () => $('setDlg').close();
 setCols(MOBILE() ? false : load('iptv_cols', true)); updateEye();
 function initResizer(h, el, varName, min, key, pmVar, pmKey){
@@ -2265,7 +2267,7 @@ applyFit(false);
 // ================= Android : mises à jour dans l'application =================
 const DEFAULT_UPD = 'https://raw.githubusercontent.com/vincetheblack/lecteur-iptv/main/update.json';   // source de mise à jour intégrée à l'application
 let updInfo = null, updBusy = false;
-function appInfo(){ try{ return JSON.parse(window.Android.appInfo()); }catch{ return {}; } }
+function appInfo(){ try{ return JSON.parse(NAT.appInfo()); }catch{ return {}; } }
 // Transforme un lien de partage (Google Drive, Dropbox) en lien de téléchargement direct
 function directUrl(u){
   u = (u || '').trim(); if(!u) return '';
@@ -2304,9 +2306,9 @@ async function fetchSmart(url, depth){
 }
 function updMsg(t, err){ const m = $('updMsg'); m.textContent = t; m.style.color = err ? 'var(--err)' : ''; }
 function showUpdInfo(){
-  $('updBox').hidden = !AND; if(!AND) return;
+  $('updBox').hidden = !NAT; if(!NAT) return;
   const ai = appInfo();
-  $('updVer').textContent = 'Application : version ' + (ai.versionName || '?') + ' (n° ' + (ai.versionCode || '?') + ') · Interface : n° ' + WEB_BUILD + (ai.ota ? ' (mise à jour téléchargée)' : '');
+  $('updVer').textContent = DESK ? 'Application Windows ' + (ai.versionName || '') + ' · Interface : n° ' + WEB_BUILD + (ai.ota ? ' (mise à jour téléchargée)' : '') : 'Application : version ' + (ai.versionName || '?') + ' (n° ' + (ai.versionCode || '?') + ') · Interface : n° ' + WEB_BUILD + (ai.ota ? ' (mise à jour téléchargée)' : '');
   $('updUrl').value = $('updUrl').value || load('iptv_updurl', '');
   $('updSrc').textContent = load('iptv_updurl', '') ? 'Source actuelle : adresse personnalisée.' : 'Source actuelle : GitHub (vincetheblack/lecteur-iptv) — intégrée à l\'application.';
   $('updWeb').value = $('updWeb').value || load('iptv_updweb', '');
@@ -2328,9 +2330,10 @@ async function checkUpdate(silent){
     let j; try{ j = JSON.parse(txt); }catch(e){ throw new Error('contenu illisible (' + txt.length + ' caractères, début « ' + txt.slice(0, 40).replace(/\s+/g, ' ') + ' »)'); }
     const ai = appInfo(), abs = (u, ov) => ov || (u ? directUrl(new URL(u, url).toString()) : '');
     const apkB = +j.apkBuild || 0, webB = +j.webBuild || 0, apkU = abs(j.apk, ovApk), webU = abs(j.web, ovWeb);
-    if(apkB > (ai.versionCode || 0) && apkU) updInfo = { kind: 'apk', url: apkU, build: apkB, version: j.version, notes: j.notes };
+    const apkNew = !DESK && apkB > (ai.versionCode || 0);                    // sous Windows : seule l'interface se met à jour ici
+    if(apkNew && apkU) updInfo = { kind: 'apk', url: apkU, build: apkB, version: j.version, notes: j.notes };
     else if(webB > WEB_BUILD && webU) updInfo = { kind: 'web', url: webU, build: webB, version: j.version, notes: j.notes };
-    else if(apkB > (ai.versionCode || 0) || webB > WEB_BUILD){ updInfo = null; if(!silent){ updMsg("Une mise à jour existe, mais le lien du fichier à télécharger manque : collez-le dans le champ « Lien de l'APK » ou « Lien de l'interface ».", true); return; } }
+    else if(apkNew || webB > WEB_BUILD){ updInfo = null; if(!silent){ updMsg("Une mise à jour existe, mais le lien du fichier à télécharger manque : collez-le dans le champ « Lien de l'APK » ou « Lien de l'interface ».", true); return; } }
     else updInfo = null;
     if(updInfo){ if(silent) toast('Mise à jour disponible — ouvrez les Réglages'); }
     else if(!silent) updMsg('Vous avez déjà la dernière version.');
@@ -2342,26 +2345,28 @@ window.onUpdate = o => {
   if(o.stage === 'progress') updMsg('Téléchargement… ' + o.pct + ' %');
   else if(o.stage === 'done'){
     updBusy = false;
-    if(o.kind === 'web'){ updMsg('Interface mise à jour. Redémarrage…'); setTimeout(() => window.Android.reload(), 800); }
+    if(o.kind === 'web'){ updMsg('Interface mise à jour. Redémarrage…'); setTimeout(() => NAT.reload(), 800); }
     else updMsg(o.msg || "Ouverture de l'installateur Android : appuyez sur « Installer ».");
   } else if(o.stage === 'error'){ updBusy = false; updMsg(o.msg || 'Erreur de mise à jour.', true); }
 };
 $('updCheck').onclick = () => checkUpdate(false);
 $('updGo').onclick = () => {
   if(!updInfo || updBusy) return;
-  if(updInfo.kind === 'apk' && window.Android.canInstall && !window.Android.canInstall()){
+  if(updInfo.kind === 'apk' && NAT.canInstall && !NAT.canInstall()){
     updMsg("Autorisez d'abord « Lecteur IPTV » à installer des applications (écran qui s'ouvre), puis revenez ici et appuyez de nouveau sur « Mettre à jour ».", true);
-    window.Android.openInstallSettings(); return;
+    NAT.openInstallSettings(); return;
   }
   updBusy = true; updMsg('Téléchargement… 0 %');
-  if(updInfo.kind === 'apk') window.Android.downloadApk(updInfo.url); else window.Android.downloadWeb(updInfo.url, updInfo.build);
+  if(updInfo.kind === 'apk') NAT.downloadApk(updInfo.url); else NAT.downloadWeb(updInfo.url, updInfo.build);
 };
 $('updDefault').onclick = () => { del('iptv_updurl'); del('iptv_updweb'); del('iptv_updapk'); $('updUrl').value = ''; $('updWeb').value = ''; $('updApk').value = ''; updInfo = null; $('updGo').hidden = true; $('updDot').hidden = true; showUpdInfo(); updMsg('Source rétablie : GitHub.'); };
-$('updReset').onclick = () => { if(confirm("Revenir à l'interface fournie avec l'application ?")) window.Android.resetWeb(); };
+$('updReset').onclick = () => { if(confirm("Revenir à l'interface fournie avec l'application ?")) NAT.resetWeb(); };
 $('updUrl').onchange = () => save('iptv_updurl', $('updUrl').value.trim());
 $('updWeb').onchange = () => save('iptv_updweb', $('updWeb').value.trim());
 $('updApk').onchange = () => save('iptv_updapk', $('updApk').value.trim());
-if(AND && Date.now() - load('iptv_updlast', 0) > 3600e3) setTimeout(() => checkUpdate(true), 4000);   // vérification automatique au démarrage (au plus une fois par heure)
+if(NAT && Date.now() - load('iptv_updlast', 0) > 3600e3) setTimeout(() => checkUpdate(true), 4000);   // vérification automatique au démarrage (au plus une fois par heure)
+
+if(DESK) window.addEventListener('message', e => { if(e.data && e.data.iptvUpdate) window.onUpdate(e.data.iptvUpdate); });
 
 // ================= Android : taille de l'interface, appui long, bouton Retour, télécommande =================
 function applyUiScale(k){
@@ -2688,6 +2693,7 @@ migrateSources(); renderSources();
   if(x){ try{ await xtreamConnect(x); }catch(e){ setStatus('Reconnexion Xtream échouée : ' + e.message, true); } }
   else if(u){ $('url').value = u; loadFromUrl(u); }
 })();
+if(DESK && window.desktop.ready) window.desktop.ready();      // la page a démarré : l'interface téléchargée est validée
 </script>
 </body>
 </html>
