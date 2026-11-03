@@ -455,7 +455,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), statusEl = $('status');
-const WEB_BUILD = (window.desktop && +window.desktop.webBuild) || 16;                                                            // numéro de version de l'interface (remplacé à la compilation)
+const WEB_BUILD = (window.desktop && +window.desktop.webBuild) || 17;                                                            // numéro de version de l'interface (remplacé à la compilation)
 const AND = typeof window.Android !== 'undefined' && !!window.Android;                       // application Android (WebView)
 const DESK = typeof window.desktop !== 'undefined' && !!window.desktop;                      // application Windows (Electron)
 const NAT = AND ? window.Android : (DESK ? window.desktop : null);                         // pont natif pour les mises à jour
@@ -489,7 +489,12 @@ let troubles = [], lastQSwitch = 0, qUpAt = 0, noUpgrade = false, lastDrop = nul
 let started = false, rebuf = false, rebufSince = 0, userRate = 1, restarting = false, waitSince = 0, playedOnce = false, engineName = '';
 let apiCfg = load('iptv_api', { prov: '', key: '' }), metaCache = load('iptv_meta', {}), apiBad = false;
 let fSort = load('iptv_fsort', 'az'), fGenre = '', fYear = '', fRate = 0, curDetail = null;
-let epg = new Map(), epgNames = new Map();
+let epg = new Map(), epgNames = new Map();       // guide fourni par le flux / le fournisseur
+let epgX = new Map(), epgXNames = new Map();     // guide externe (fichier ou lien choisi), prioritaire
+let epgTarget = 'main';
+function setEpgData(progs, names){
+  if(epgTarget === 'ext'){ epgX = progs; epgXNames = names; } else { epg = progs; epgNames = names; }
+}
 
 function load(k, d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d }catch{ return d } }
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)) }catch{} }
@@ -545,7 +550,7 @@ async function loadFromUrl(url){
     save('iptv_url', url); del('iptv_xtream'); upsertSource('m3u', { url });
     setStatus(list.length + ' chaînes chargées.');
     const saved = load('iptv_epg', '');
-    if(saved && !epg.size) loadEpgUrl(saved, true);
+    if(saved && !epgX.size) loadEpgUrl(saved, true);
   }catch(e){
     setStatus('Impossible de charger la playlist (' + e.message + ').', true);
   }
@@ -895,7 +900,7 @@ function parseXmltvFast(text){
     progs.get(id).push({ s, e, title: t ? un(t[1]) : '', desc: dsc ? un(dsc[1]) : '' }); n++;
   }
   for(const l of progs.values()) l.sort((a, b) => a.s - b.s);
-  epg = progs; epgNames = names;
+  setEpgData(progs, names);
   channels.forEach(c => c._p = undefined);
   return n;
 }
@@ -925,7 +930,7 @@ function parseXmltv(text){
     progs.get(id).push(item); n++;
   }
   for(const l of progs.values()) l.sort((a, b) => a.s - b.s);
-  epg = progs; epgNames = names;
+  setEpgData(progs, names);
   channels.forEach(c => c._p = undefined);
   return n;
 }
@@ -934,9 +939,10 @@ async function loadEpgUrl(url, quiet){
   try{
     if(!quiet) setStatus('Téléchargement du guide…');
     const text = await bytesToText(await (await fetchOk(url)).arrayBuffer());
+    epgTarget = /xmltv\.php\?/.test(url) ? 'main' : 'ext';
     const n = parseXmltv(text);
     if(!/xmltv\.php\?/.test(url)){ save('iptv_epg', url); const a = sources && sources.find(x => x.id === activeId); if(a && a.type === 'm3u'){ a.epg = url; saveSources(); } }
-    setStatus('Guide chargé : ' + n + ' programmes, ' + epg.size + ' chaînes.');
+    setStatus('Guide chargé : ' + n + ' programmes, ' + (epgTarget === 'ext' ? epgX : epg).size + ' chaînes.');
     refreshEpgViews();
   }catch(e){
     setStatus('Guide indisponible (' + e.message + ').', true);
@@ -946,8 +952,13 @@ async function loadEpgUrl(url, quiet){
 function progsOf(ch){
   if(ch._p === undefined){
     const src = ch._master || ch;
-    let l = (src.epgId && epg.get(src.epgId)) || (ch.epgId && epg.get(ch.epgId));
-    if(!l){ const id = epgNames.get(norm(src._dn || src.name)) || epgNames.get(norm(src.name)) || epgNames.get(epgKey(src._dn || src.name)) || epgNames.get(epgKey(src.name)); l = id && epg.get(id); }
+    const look = (E, N) => {
+      let l = (src.epgId && E.get(src.epgId)) || (ch.epgId && E.get(ch.epgId));
+      if(!l){ const id = N.get(norm(src._dn || src.name)) || N.get(norm(src.name)) || N.get(epgKey(src._dn || src.name)) || N.get(epgKey(src.name)); l = id && E.get(id); }
+      return l;
+    };
+    // guide externe d'abord ; à défaut, ce qu'envoie le flux
+    const l = look(epgX, epgXNames) || look(epg, epgNames);
     ch._p = l || null;
   }
   return ch._p;
@@ -2282,8 +2293,9 @@ $('epgFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
   $('epgDlg').close();
   try{
+    epgTarget = 'ext';
     const n = parseXmltv(await bytesToText(await f.arrayBuffer()));
-    setStatus('Guide chargé : ' + n + ' programmes, ' + epg.size + ' chaînes.'); refreshEpgViews();
+    setStatus('Guide chargé : ' + n + ' programmes, ' + epgX.size + ' chaînes.'); refreshEpgViews();
   }catch(err){ setStatus('Guide invalide (' + err.message + ').', true); }
 };
 
@@ -2699,7 +2711,7 @@ async function useSource(id){
   const x = sources.find(y => y.id === id); if(!x) return;
   if(curCh) stopPlayback();
   activeId = id; saveSources();
-  epg = new Map(); epgNames = new Map(); xcfg = null;
+  epg = new Map(); epgNames = new Map(); epgX = new Map(); epgXNames = new Map(); xcfg = null;
   sections = { live: [], vod: [], series: [] }; setChannels([]); renderTabs();
   if(x.type === 'xtream'){
     const cfg = { server: x.server, user: x.user, pass: x.pass, fmt: x.fmt || 'm3u8', name: x.name };

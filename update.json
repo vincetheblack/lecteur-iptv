@@ -1,8 +1,8 @@
 {
-  "version": "1.6.16",
+  "version": "1.6.17",
   "apkBuild": 6,
   "apk": "Lecteur-IPTV.apk",
-  "webBuild": 16,
+  "webBuild": 17,
   "web": "index.html",
-  "notes": "Guide TV : association des chaînes plus tolérante (FR: TF1 HD = TF1), gros guides xmltvfr, ZIP"
+  "notes": "Guide TV : si une chaîne n'est pas dans le fichier EPG choisi, on garde le guide envoyé par le flux"
 }
