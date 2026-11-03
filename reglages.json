@@ -1,7 +1,7 @@
 {
  "app": "lecteur-iptv",
  "format": 1,
- "date": "2026-11-03T17:04:12.302Z",
+ "date": "2026-11-03T18:57:14.227Z",
  "data": {
   "iptv_favlists": [
    {
@@ -733,12 +733,6 @@
   "iptv_buf": 60,
   "iptv_fit": 0,
   "iptv_fsort": "year",
-  "iptv_stats": false,
-  "iptv_xtream": {
-   "server": "http://korvianetix.com",
-   "user": "88611kiu0208",
-   "pass": "sbqZfwU",
-   "fmt": "m3u8"
-  }
+  "iptv_stats": false
  }
 }
