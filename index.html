@@ -455,7 +455,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), statusEl = $('status');
-const WEB_BUILD = (window.desktop && +window.desktop.webBuild) || 15;                                                            // numéro de version de l'interface (remplacé à la compilation)
+const WEB_BUILD = (window.desktop && +window.desktop.webBuild) || 16;                                                            // numéro de version de l'interface (remplacé à la compilation)
 const AND = typeof window.Android !== 'undefined' && !!window.Android;                       // application Android (WebView)
 const DESK = typeof window.desktop !== 'undefined' && !!window.desktop;                      // application Windows (Electron)
 const NAT = AND ? window.Android : (DESK ? window.desktop : null);                         // pont natif pour les mises à jour
@@ -497,6 +497,12 @@ function del(k){ try{ localStorage.removeItem(k) }catch{} }
 function setStatus(msg, err){ statusEl.textContent = msg; statusEl.className = err ? 'err' : ''; }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+// Clé tolérante pour associer « FR: TF1 HD » à « TF1 » du guide
+const epgKey = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\+/g, ' plus ')
+  .replace(/[\[\(][^\]\)]*[\]\)]/g, ' ')
+  .replace(/^[\s|]*(?:[a-z]{2,3}\s*[:|]|[a-z]{2,3}\s+-\s)[\s|]*/, '')
+  .replace(/\b(?:uhd|fhd|hd|sd|4k|8k|hevc|h\.?26[45]|raw|vip|multi|50fps|60fps|1080p?|720p?|hdr)\b/g, ' ')
+  .replace(/[^a-z0-9]/g, '');
 const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 
 // ================= M3U =================
@@ -872,7 +878,8 @@ function parseXmltvFast(text){
   const rc = /<channel\s[^>]*?id="([^"]*)"[^>]*>([\s\S]*?)<\/channel>/g;
   while((m = rc.exec(text))){
     const rd = /<display-name[^>]*>([\s\S]*?)<\/display-name>/g; let d;
-    while((d = rd.exec(m[2]))) names.set(norm(un(d[1])), un(m[1]));
+    while((d = rd.exec(m[2]))){ names.set(norm(un(d[1])), un(m[1])); const k = epgKey(un(d[1])); if(!names.has(k)) names.set(k, un(m[1])); }
+    names.set(epgKey(un(m[1]).replace(/\.[a-z]{2}$/i, '')), un(m[1]));
   }
   const now = Date.now(), min = now - 6 * 3600e3, max = now + 48 * 3600e3;
   let n = 0;
@@ -900,7 +907,8 @@ function parseXmltv(text){
   const progs = new Map(), names = new Map();
   for(const c of doc.getElementsByTagName('channel')){
     const id = c.getAttribute('id');
-    for(const dn of c.getElementsByTagName('display-name')) names.set(norm(dn.textContent), id);
+    for(const dn of c.getElementsByTagName('display-name')){ names.set(norm(dn.textContent), id); const k = epgKey(dn.textContent); if(!names.has(k)) names.set(k, id); }
+    names.set(epgKey(String(id).replace(/\.[a-z]{2}$/i, '')), id);
   }
   const now = Date.now(), min = now - 6 * 3600e3, max = now + 48 * 3600e3;
   let n = 0;
@@ -939,7 +947,7 @@ function progsOf(ch){
   if(ch._p === undefined){
     const src = ch._master || ch;
     let l = (src.epgId && epg.get(src.epgId)) || (ch.epgId && epg.get(ch.epgId));
-    if(!l){ const id = epgNames.get(norm(src._dn || src.name)) || epgNames.get(norm(src.name)); l = id && epg.get(id); }
+    if(!l){ const id = epgNames.get(norm(src._dn || src.name)) || epgNames.get(norm(src.name)) || epgNames.get(epgKey(src._dn || src.name)) || epgNames.get(epgKey(src.name)); l = id && epg.get(id); }
     ch._p = l || null;
   }
   return ch._p;
