@@ -253,7 +253,7 @@
   <button id="srcBtn" title="Mes connexions : changer de compte ou de playlist">📡 Connexion</button>
   <button id="eyeBtn" title="Voir la playlist telle que fournie">👁 Affichage original</button>
   <button id="guideBtn">Guide</button>
-  <button id="setBtn" title="Réglages"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Réglages</button>
+  <button id="setBtn" title="Réglages"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Réglages<span id="updDot" hidden title="Une mise à jour est disponible" style="color:#ff6b6b;margin-left:6px">●</span></button>
   <input type="file" id="fileInput" accept=".m3u,.m3u8,.txt,audio/x-mpegurl,application/vnd.apple.mpegurl" hidden>
   <input type="file" id="epgFile" accept=".xml,.gz,.xmltv" hidden>
 </header>
@@ -354,13 +354,14 @@
   <div id="updBox" hidden>
     <h3>Mises à jour de l'application</h3>
     <div class="hint" id="updVer"></div>
-    <label>Fichier de mise à jour (update.json)</label>
-    <input type="url" id="updUrl" placeholder="Lien de update.json (Google Drive, Dropbox ou adresse directe)" autocomplete="off">
+    <div class="hint" id="updSrc"></div>
+    <label>Autre source de mise à jour (facultatif — laissez vide pour utiliser GitHub)</label>
+    <input type="url" id="updUrl" placeholder="Lien de update.json (GitHub, QNAP, Drive…)" autocomplete="off">
     <label>Lien de l'interface (index.html) — si le lien n'est pas dans update.json</label>
     <input type="url" id="updWeb" placeholder="Lien de index.html" autocomplete="off">
     <label>Lien de l'APK — si le lien n'est pas dans update.json</label>
     <input type="url" id="updApk" placeholder="Lien de Lecteur-IPTV.apk" autocomplete="off">
-    <div class="srow"><button id="updCheck">Vérifier les mises à jour</button><button class="primary" id="updGo" hidden>Mettre à jour</button><button id="updReset" title="Supprime l'interface téléchargée et revient à celle fournie avec l'application">Version d'origine</button></div>
+    <div class="srow"><button id="updCheck">Vérifier les mises à jour</button><button class="primary" id="updGo" hidden>Mettre à jour</button><button id="updDefault" title="Revenir à la source GitHub intégrée à l'application">Rétablir GitHub</button><button id="updReset" title="Supprime l'interface téléchargée et revient à celle fournie avec l'application">Version d'origine</button></div>
     <div class="hint" id="updMsg"></div>
   </div>
   <h3>Mes réglages personnels</h3>
@@ -454,7 +455,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), statusEl = $('status');
-const WEB_BUILD = 12;                                                            // numéro de version de l'interface (remplacé à la compilation)
+const WEB_BUILD = 13;                                                            // numéro de version de l'interface (remplacé à la compilation)
 const AND = typeof window.Android !== 'undefined' && !!window.Android;                       // application Android (WebView)
 const IS_TV = AND && !!window.Android.isTv && window.Android.isTv();                         // Fire TV / Android TV
 const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
@@ -2262,6 +2263,7 @@ $('stage').addEventListener('touchstart', () => { tapWasAct = $('stage').classLi
 applyFit(false);
 
 // ================= Android : mises à jour dans l'application =================
+const DEFAULT_UPD = 'https://raw.githubusercontent.com/vincetheblack/lecteur-iptv/main/update.json';   // source de mise à jour intégrée à l'application
 let updInfo = null, updBusy = false;
 function appInfo(){ try{ return JSON.parse(window.Android.appInfo()); }catch{ return {}; } }
 // Transforme un lien de partage (Google Drive, Dropbox) en lien de téléchargement direct
@@ -2306,17 +2308,19 @@ function showUpdInfo(){
   const ai = appInfo();
   $('updVer').textContent = 'Application : version ' + (ai.versionName || '?') + ' (n° ' + (ai.versionCode || '?') + ') · Interface : n° ' + WEB_BUILD + (ai.ota ? ' (mise à jour téléchargée)' : '');
   $('updUrl').value = $('updUrl').value || load('iptv_updurl', '');
+  $('updSrc').textContent = load('iptv_updurl', '') ? 'Source actuelle : adresse personnalisée.' : 'Source actuelle : GitHub (vincetheblack/lecteur-iptv) — intégrée à l\'application.';
   $('updWeb').value = $('updWeb').value || load('iptv_updweb', '');
   $('updApk').value = $('updApk').value || load('iptv_updapk', '');
   $('updGo').hidden = !updInfo;
   if(updInfo) updMsg('Nouvelle version ' + (updInfo.version || '') + ' disponible' + (updInfo.notes ? ' — ' + updInfo.notes : '') + (updInfo.kind === 'apk' ? ' (installation complète)' : ' (interface)'));
 }
 async function checkUpdate(silent){
-  const raw = ($('updUrl').value.trim() || load('iptv_updurl', '')).trim(), url = directUrl(raw);
-  if(!url){ if(!silent) updMsg("Collez le lien du fichier update.json (partagé avec « Tous les utilisateurs disposant du lien »).", true); return; }
-  save('iptv_updurl', raw); save('iptv_updlast', Date.now());
+  const custom = ($('updUrl').value.trim() || load('iptv_updurl', '')).trim(), raw = custom || DEFAULT_UPD, url = directUrl(raw);
+  if(custom && custom !== DEFAULT_UPD) save('iptv_updurl', custom); else del('iptv_updurl');
+  save('iptv_updlast', Date.now());
   save('iptv_updweb', $('updWeb').value.trim() || load('iptv_updweb', '')); save('iptv_updapk', $('updApk').value.trim() || load('iptv_updapk', ''));
-  const ovWeb = directUrl(load('iptv_updweb', '')), ovApk = directUrl(load('iptv_updapk', ''));
+  const github = /githubusercontent\.com|github\.com/.test(url);                  // avec GitHub, les fichiers sont à côté de update.json : liens personnalisés ignorés
+  const ovWeb = github ? '' : directUrl(load('iptv_updweb', '')), ovApk = github ? '' : directUrl(load('iptv_updapk', ''));
   if(!silent) updMsg('Recherche de mises à jour…');
   try{
     if(/drive\.google\.com\/drive\/(u\/\d+\/)?folders\//.test(raw)) throw new Error("c'est le lien d'un dossier Drive : il faut le lien du fichier update.json (clic droit sur le fichier > Partager > Copier le lien)");
@@ -2330,7 +2334,7 @@ async function checkUpdate(silent){
     else updInfo = null;
     if(updInfo){ if(silent) toast('Mise à jour disponible — ouvrez les Réglages'); }
     else if(!silent) updMsg('Vous avez déjà la dernière version.');
-    $('updGo').hidden = !updInfo;
+    $('updGo').hidden = !updInfo; $('updDot').hidden = !updInfo;
     if(updInfo && !silent) showUpdInfo();
   }catch(e){ if(!silent) updMsg('Vérification impossible : ' + e.message, true); }
 }
@@ -2352,11 +2356,12 @@ $('updGo').onclick = () => {
   updBusy = true; updMsg('Téléchargement… 0 %');
   if(updInfo.kind === 'apk') window.Android.downloadApk(updInfo.url); else window.Android.downloadWeb(updInfo.url, updInfo.build);
 };
+$('updDefault').onclick = () => { del('iptv_updurl'); del('iptv_updweb'); del('iptv_updapk'); $('updUrl').value = ''; $('updWeb').value = ''; $('updApk').value = ''; updInfo = null; $('updGo').hidden = true; $('updDot').hidden = true; showUpdInfo(); updMsg('Source rétablie : GitHub.'); };
 $('updReset').onclick = () => { if(confirm("Revenir à l'interface fournie avec l'application ?")) window.Android.resetWeb(); };
 $('updUrl').onchange = () => save('iptv_updurl', $('updUrl').value.trim());
 $('updWeb').onchange = () => save('iptv_updweb', $('updWeb').value.trim());
 $('updApk').onchange = () => save('iptv_updapk', $('updApk').value.trim());
-if(AND && load('iptv_updurl', '') && Date.now() - load('iptv_updlast', 0) > 12 * 3600e3) setTimeout(() => checkUpdate(true), 4000);   // vérification automatique (au plus 2 fois par jour)
+if(AND && Date.now() - load('iptv_updlast', 0) > 3600e3) setTimeout(() => checkUpdate(true), 4000);   // vérification automatique au démarrage (au plus une fois par heure)
 
 // ================= Android : taille de l'interface, appui long, bouton Retour, télécommande =================
 function applyUiScale(k){

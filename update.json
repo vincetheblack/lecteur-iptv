@@ -1,8 +1,8 @@
 {
-  "version": "1.6.12",
+  "version": "1.6.13",
   "apkBuild": 6,
   "apk": "Lecteur-IPTV.apk",
-  "webBuild": 12,
+  "webBuild": 13,
   "web": "index.html",
-  "notes": "Chaînes fusionnées : étiquette de qualité compacte sur la ligne du nom (2 qualités max puis …)"
+  "notes": "Mises à jour : GitHub intégré à l'application, vérification automatique au démarrage"
 }
