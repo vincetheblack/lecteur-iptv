@@ -1,0 +1,8 @@
+{
+  "version": "1.6.6",
+  "apkBuild": 6,
+  "apk": "Lecteur-IPTV.apk",
+  "webBuild": 6,
+  "web": "index.html",
+  "notes": "Mise à jour via Google Drive plus robuste"
+}
